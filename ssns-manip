@@ -1,8 +1,50 @@
 #!/usr/bin/env python
 
+from dataclasses import dataclass
+import re
 import sys
 
 import click
+
+
+@dataclass
+class Instruction:
+    '''What to do with a particular command.'''
+    offset: int
+    command_type: int
+
+    should_omit: bool
+
+
+def parse_instructions(filename):
+    '''
+    Parse an instructions file.
+
+    This is a format we made up right here; see CLI usage message for
+    description.
+    '''
+    # And really the details of the format are mostly up to ccl_ssns.py.
+
+    instructions = []
+    with open(filename, 'r') as f:
+        for line in f:
+            m = re.search('^(x )?([0-9a-f]{8}): (?:([0-9a-f]{4,}:[0-9a-f]+ )|type +(\d+))',
+                          line)
+            if not m:
+                raise click.ClickException(f"Can't parse instruction: {line}")
+
+            should_omit = (m[1] is not None)
+            offset = int(m[2], 16)
+            if m[3] is not None:
+                # aka kCommandUpdateTabNavigation, in session_service_commands.cc
+                command_type = 6
+            else:
+                command_type = int(m[4])
+
+            instructions.append(Instruction(
+                offset=offset, command_type=command_type, should_omit=should_omit))
+
+    return instructions
 
 
 @click.command()
@@ -31,7 +73,11 @@ def main(input_file, output_dir, *, instructions_file):
 
     print(input_file)
     print(output_dir)
-    print(instructions_file)
+
+    instructions = None
+    if instructions_file is not None:
+        instructions = parse_instructions(instructions_file)
+        print(len(instructions))
 
 
 if __name__ == '__main__':
