@@ -490,6 +490,7 @@ def read_command(f):
         print(f"{start_offset:08x}: {command.tab_id:04x}:{command.index:x} {command.url}")
         return command
     else:
+        print(f"{start_offset:08x}: type {command_id}")
         return SessionCommand(command_id, None, None, None, None, None, None, None, 
                           None, None, None, None)
 
