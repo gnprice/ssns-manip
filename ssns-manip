@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import sys
+
+import click
+
+
+@click.command()
+@click.argument('input_file')
+@click.argument('output_dir')
+@click.option('-f', 'instructions_file', metavar='FILE',
+        help='File with instructions for how to edit.')
+def main(input_file, output_dir, *, instructions_file):
+    '''
+    Make an edited version of a Chrome or Chromium session file.
+
+    The edited version will be written as the newest Session_* file
+    in OUTPUT_DIR.
+
+    If no instructions are provided, the file will be copied
+    unmodified.
+
+    With `-f`, the given instructions should be based on the output of
+    ccl_ssns.py.  Each line indicates what to do with the corresponding
+    command in the file.  The line should be either:
+
+     * unmodified, to copy the command unmodified to the output; or
+
+     * have "x " inserted at the beginning, to skip the command.
+    '''
+
+    print(input_file)
+    print(output_dir)
+    print(instructions_file)
+
+
+if __name__ == '__main__':
+    main()
