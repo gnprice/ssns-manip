@@ -22,6 +22,8 @@ class Instruction:
     offset: int
     command_type: int
 
+    # TODO WORK HERE make this an enum for s/b/keep
+    # TODO then parse, then execute
     should_omit: bool
 
 
@@ -170,7 +172,14 @@ def main(input_file, output_dir, *, instructions_file):
 
      * unmodified, to copy the command unmodified to the output; or
 
-     * have "x " inserted at the beginning, to skip the command.
+     * have "s " inserted at the beginning, to skip the command; or
+
+     * have "b " inserted at the beginning, to replace the command
+       with a navigation to about:blank.  This requires that the
+       command be an UpdateTabNavigation command.  The tab ID and
+       index will be copied from the input command, the URL and title
+       will be `about:blank`, and all other fields will have boring
+       default values.
     '''
 
     instructions = None
