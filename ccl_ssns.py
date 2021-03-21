@@ -460,6 +460,8 @@ def read_str_16(f, length_is_bytes=False):
     return string
 
 def read_command(f):
+    start_offset = f.tell()
+
     # Try to get the size of the record.
     size_bytes = f.read(2)
     if len(size_bytes) < 2:
@@ -481,7 +483,9 @@ def read_command(f):
     command_id = command_buffer.read(1)[0]
     
     if command_id in (1,6):
-        return read_tab_restore_command(command_buffer, command_id)
+        command = read_tab_restore_command(command_buffer, command_id)
+        print(f"{start_offset:08x}: {command.tab_id:04x}:{command.index:x} {command.url}")
+        return command
     else:
         return SessionCommand(command_id, None, None, None, None, None, None, None, 
                           None, None, None, None)
