@@ -695,6 +695,27 @@ def build_command_table(command, parent_element):
         recurs_form_data(command.web_history_item, form_data_data_td)
 
 
+def write_report(commands, out_path):
+    document_root = etree.Element("html", )
+    document_head = etree.SubElement(document_root, "head")
+    document_style = etree.SubElement(document_head, "style", {"type":"text/css"})
+    document_style.text = html_style_string
+    etree.SubElement(document_head, "meta", {"http-eqiv":"Content-Type", "content":"text/html", "charset":"utf-8"})
+
+    body = etree.SubElement(document_root, "body")
+
+    for c in sorted(commands, key=lambda rec: (rec.tab_id or -1, rec.index or -1)):
+        if c.command_type_id in (1,6):
+            build_command_table(c, body)
+            etree.SubElement(body, "br")
+
+    # Write output (using minidom for prettification)
+    out = open(out_path, "wt", encoding="utf-8")
+    #out.write(minidom.parseString(etree.tostring(document_root, encoding="utf-8").decode()).toprettyxml())
+    out.write(etree.tostring(document_root, encoding="utf-8").decode())
+    out.close()
+
+
 def main():
     if len(sys.argv) < 3:
         log("Usage: <Current/Last Session/Tabs> <output.html>")
@@ -711,26 +732,10 @@ def main():
     else:
         log("NO MARKER")
 
-    document_root = etree.Element("html", )
-    document_head = etree.SubElement(document_root, "head")
-    document_style = etree.SubElement(document_head, "style", {"type":"text/css"})
-    document_style.text = html_style_string
-    etree.SubElement(document_head, "meta", {"http-eqiv":"Content-Type", "content":"text/html", "charset":"utf-8"})
-
-    body = etree.SubElement(document_root, "body")
-
-    for c in sorted(commands, key=lambda rec: (rec.tab_id or -1, rec.index or -1)):
-        if c.command_type_id in (1,6):
-            build_command_table(c, body)
-            etree.SubElement(body, "br")
-
-    # Write output (using minidom for prettification)
-    out = open(sys.argv[2], "wt", encoding="utf-8")
-    #out.write(minidom.parseString(etree.tostring(document_root, encoding="utf-8").decode()).toprettyxml())
-    out.write(etree.tostring(document_root, encoding="utf-8").decode())
-    out.close()
+    write_report(commands, sys.argv[2])
 
     log("Processing finished.")
+
 
 if __name__ == "__main__":
     main()
