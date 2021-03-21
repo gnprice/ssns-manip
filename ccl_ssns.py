@@ -75,6 +75,9 @@ PAGE_TRANSITION_QUALIFIER_MASK = 0xFFFFFF00
 SKIP_ERRORS = False
 USE_EXPERIMENTAL_FEATURES = True # if you are getting errors or strange output try setting to False
 
+def log(*args):
+    print(*args, file=sys.stderr)
+
 class SsnsError(Exception):
     pass
 
@@ -544,19 +547,19 @@ def load_iter(f, file_type):
         try:
             command = read_command(f)
         except (struct.error, IOError, SsnsError) as e:
-            print("Error reading record begining at data offset {0}.".format(record_start_offset))
-            print("Error caused by: {0}.".format(e))
-            print("Traceback follows for debugging:")
-            print()
-            print("---------------EXCEPTION BEGINS---------------")
-            traceback.print_exc(limit=None, file=sys.stdout)
-            print("----------------EXCEPTION ENDS----------------")
-            print()
+            log("Error reading record begining at data offset {0}.".format(record_start_offset))
+            log("Error caused by: {0}.".format(e))
+            log("Traceback follows for debugging:")
+            log()
+            log("---------------EXCEPTION BEGINS---------------")
+            traceback.print_exc(limit=None, file=sys.stderr)
+            log("----------------EXCEPTION ENDS----------------")
+            log()
             
             if SKIP_ERRORS:
                 continue
             else:
-                print("NB: No further records will be read.")
+                log("NB: No further records will be read.")
                 command = None
         if command:
             yield command
@@ -687,10 +690,10 @@ def build_command_table(command, parent_element):
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: <Current/Last Session/Tabs> <output.html>")
+        log("Usage: <Current/Last Session/Tabs> <output.html>")
         sys.exit() 
     
-    print("Processing begins...")
+    log("Processing begins...")
     # load infile
     f = open(sys.argv[1], "rb")
 
@@ -716,7 +719,7 @@ def main():
     out.write(etree.tostring(document_root, encoding="utf-8").decode())
     out.close()
 
-    print("Processing finished.")
+    log("Processing finished.")
 
 if __name__ == "__main__":
     main()
