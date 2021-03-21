@@ -227,6 +227,7 @@ class WebHistoryItem:
     @classmethod
     def from_stream(cls, f):
         # Details of the encoding can be found in chrome source, webkit/glue/glue_serialize.cc
+        return None
 
         # Encountered an edge case (or possibly mal-formed data) where in the
         # subitems (see below) we end being told that we have more than we
@@ -516,7 +517,7 @@ def read_tab_restore_command(command_buffer, command_id):
         is_overriding_user_agent, = struct.unpack("<i", command_buffer.read(4))
 
     # Parse state
-    if state_length > 4:
+    if False: # state_length > 4:
         state = WebHistoryItem.from_bytes(state_blob[4:]) # first 32bits is the internal pickle size. We dont' need it.
     else:
         state = WebHistoryItem(None, None, None, None, None, None, None, None, None, 
