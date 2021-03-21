@@ -536,10 +536,9 @@ def read_tab_restore_command(command_buffer, command_id):
 
     return SessionCommand(command_id, tab_id, index, url, title, state, transition_type, has_post_data > 0, 
                           referrer_url, referrer_policy, request_url, is_overriding_user_agent > 0)
-    
 
-""" f should be a file like object """
-def load_iter(f, file_type):
+
+def read_header(f):
     # Check header
     sig = f.read(len(FILE_SIGNATURE))
     if sig != FILE_SIGNATURE:
@@ -548,6 +547,13 @@ def load_iter(f, file_type):
     ver, = struct.unpack("<i", f.read(4))
     if ver not in (1, 3):
         raise ValueError("File version is not 1 or 3")
+
+    return ver
+
+
+""" f should be a file like object """
+def load_iter(f, file_type):
+    _ = read_header(f)
 
     while True: 
         record_start_offset = f.tell()
@@ -726,11 +732,16 @@ def main():
     with open(sys.argv[1], "rb") as f:
         commands = load(f, FILE_TYPE_TABS)
 
-    had_marker = kInitialStateMarkerCommandId in (c.command_type_id for c in commands)
-    if had_marker:
-        log("had marker")
-    else:
-        log("NO MARKER")
+    with open(sys.argv[1], "rb") as f:
+        file_format_version = read_header(f)
+
+    supports_marker = (file_format_version in (3, 4))
+    if supports_marker:
+        has_marker = kInitialStateMarkerCommandId in (c.command_type_id for c in commands)
+        if not has_marker:
+            # For background, see comment on CommandStorageBackend:
+            #   https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/components/sessions/core/command_storage_backend.h
+            log("NO MARKER.  File was incompletely written.")
 
     write_report(commands, sys.argv[2])
 
