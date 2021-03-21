@@ -484,9 +484,13 @@ def read_command(f):
 
     # Get the command type id
     command_id = command_buffer.read(1)[0]
-    
+
+    # An UpdateTabNavigation command is stored with command type 1
+    # in Tabs files, and command type 6 in Session files.
+    # See kCommandUpdateTabNavigation in tab_restore_service_impl.cc
+    # and session_service_commands.cc respectively.
     if command_id in (1,6):
-        command = read_tab_restore_command(command_buffer, command_id)
+        command = read_navigation_entry(command_buffer, command_id)
         print(f"{start_offset:08x}: {command.tab_id:04x}:{command.index:x} {command.url}")
         return command
     else:
@@ -494,8 +498,18 @@ def read_command(f):
         return SessionCommand(command_id, None, None, None, None, None, None, None, 
                           None, None, None, None)
 
-    
-def read_tab_restore_command(command_buffer, command_id):
+
+def read_navigation_entry(command_buffer, command_id):
+    '''
+    Read a tab ID and SerializedNavigationEntry.
+
+    Corresponds to RestoreUpdateTabNavigationCommand:
+      https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/components/sessions/core/base_session_service_commands.cc#152
+
+    Everything after tab_id corresponds to SerializedNavigationEntry::ReadFromPickle:
+      https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/components/sessions/core/serialized_navigation_entry.cc#178
+    '''
+
     # Get the pickle length value (we won't actually use it, just carry on through the buffer)
     pickle_length, = struct.unpack("<i", command_buffer.read(4))
 
@@ -518,6 +532,7 @@ def read_tab_restore_command(command_buffer, command_id):
     if command_buffer.tell() >= len(command_buffer.getvalue()):
         referrer_policy = 0
     else:
+        # NB this is apparently wrong and ignored -- correct one comes later
         referrer_policy, = struct.unpack("<i", command_buffer.read(4))
 
     if command_buffer.tell() >= len(command_buffer.getvalue()):
@@ -527,8 +542,26 @@ def read_tab_restore_command(command_buffer, command_id):
         request_url = read_str_8(command_buffer)
         is_overriding_user_agent, = struct.unpack("<i", command_buffer.read(4))
 
+    # Then:
+    #   8 bytes of timestamp
+    #   UTF-16 string search_terms (ignored)
+    #   4 bytes HTTP status code
+    #   4 bytes referrer policy -- correct one this time
+    #      If missing, page state gets referrer stripped out
+    #   4 bytes extended info map size
+    #   N times 2 times byte-string, for key-value pairs for extended info map
+    #   8 bytes task ID
+    #   8 bytes parent task ID
+    #   8 bytes root task ID
+    #   4 bytes num children task IDs
+    #   N times 8 bytes for children task IDs
+    #   (that's it, as of Chrome 89)
+
     # Parse state
     if False: # state_length > 4:
+        # Sometime before Chrome 89, it seems that the internals of this part have
+        # changed incompatibly.  The new implementation appears to live in Blink:
+        #   https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/components/sessions/content/content_serialized_navigation_driver.cc#64
         state = WebHistoryItem.from_bytes(state_blob[4:]) # first 32bits is the internal pickle size. We dont' need it.
     else:
         state = WebHistoryItem(None, None, None, None, None, None, None, None, None, 
