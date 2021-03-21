@@ -85,6 +85,24 @@ class SsnsError(Exception):
     pass
 
 class WebHistoryItem:
+    '''
+    A "page state", as serialized by SerializedNavigationDriver.
+
+    This can apparently be quite different between different flavors
+    of Chromium-based browser.  The implementation that appears to be
+    involved for desktop browsers delegates to Blink:
+      https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/components/sessions/content/content_serialized_navigation_driver.cc#64
+    where the relevant code appears to be ReadPageState here:
+      https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/third_party/blink/common/page_state/page_state_serialization.cc#889
+
+    Then there's an internal format-version field which seems quite
+    frequently incremented, like several times a year, with changes
+    that are incompatible for old readers.  The current (as of
+    Chrome 89) implementation refuses to even try to parse anything
+    older than version 11, and at version 26 it changed to a
+    completely new thing again.
+    '''
+
     def __init__(self, url_string, original_url, target, parent, title, alt_title, last_visited_time, 
                  scroll_offset_x, scroll_offset_y, is_target_item, visit_count, referrer, document_state,
                  page_scale_factor, item_sequence_number, document_sequence_number, state_obj, form_data,
@@ -233,7 +251,6 @@ class WebHistoryItem:
     @classmethod
     def from_stream(cls, f):
         # Details of the encoding can be found in chrome source, webkit/glue/glue_serialize.cc
-        return None
 
         # Encountered an edge case (or possibly mal-formed data) where in the
         # subitems (see below) we end being told that we have more than we
@@ -254,7 +271,9 @@ class WebHistoryItem:
                    None, None, None, None, None, None, None,
                    None, None, None, None)
 
-
+        # At version 14, the format changed in ways this code doesn't currently support.
+        if version >= 14:
+            return None
 
         # Based on the version, the strings may be encoded differently.
         # (See: webkit/glue/glue_serialize.cc; WriteString in Chrome source).
@@ -558,12 +577,10 @@ def read_navigation_entry(command_buffer, command_id):
     #   (that's it, as of Chrome 89)
 
     # Parse state
-    if False: # state_length > 4:
-        # Sometime before Chrome 89, it seems that the internals of this part have
-        # changed incompatibly.  The new implementation appears to live in Blink:
-        #   https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/components/sessions/content/content_serialized_navigation_driver.cc#64
+    state = None
+    if state_length > 4:
         state = WebHistoryItem.from_bytes(state_blob[4:]) # first 32bits is the internal pickle size. We dont' need it.
-    else:
+    if state is None:
         state = WebHistoryItem(None, None, None, None, None, None, None, None, None, 
                    None, None, None, None, None, None, None,
                    None, None, None, None)
