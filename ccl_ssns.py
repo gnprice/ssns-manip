@@ -543,8 +543,8 @@ def load_iter(f, file_type):
         raise ValueError("File signature is not SNSS")
     
     ver, = struct.unpack("<i", f.read(4))
-    if ver != 1:
-        raise ValueError("File version is not 1")
+    if ver not in (1, 3):
+        raise ValueError("File version is not 1 or 3")
 
     while True: 
         record_start_offset = f.tell()
