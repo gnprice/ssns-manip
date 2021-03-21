@@ -46,6 +46,9 @@ FILE_VERSION = 1
 FILE_TYPE_TABS = 1
 FILE_TYPE_SESSION = 2
 
+# https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/components/sessions/core/command_storage_backend.cc
+kInitialStateMarkerCommandId = 255
+
 PAGE_TRANSITION_TYPES = {
                          0 : "Link followed",
                          1 : "URL Typed",
@@ -710,7 +713,14 @@ def main():
 
     body = etree.SubElement(document_root, "body")
 
-    for c in sorted(load(f, FILE_TYPE_TABS), key=lambda rec: (rec.tab_id or -1, rec.index or -1)):
+    commands = load(f, FILE_TYPE_TABS)
+    had_marker = kInitialStateMarkerCommandId in (c.command_type_id for c in commands)
+    if had_marker:
+        log("had marker")
+    else:
+        log("NO MARKER")
+
+    for c in sorted(commands, key=lambda rec: (rec.tab_id or -1, rec.index or -1)):
         if c.command_type_id in (1,6):
             build_command_table(c, body)
             etree.SubElement(body, "br")
