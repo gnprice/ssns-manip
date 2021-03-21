@@ -5,8 +5,9 @@ from datetime import datetime, timedelta
 import io
 import os
 import re
+import struct
 import sys
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 import click
 
@@ -90,6 +91,64 @@ def open_output_file(output_dir: str) -> Tuple[str, io.BufferedWriter]:
             timestamp += 1
 
 
+# These follow definitions in Chromium upstream:
+#   https://chromium.googlesource.com/chromium/src.git/+/refs/tags/89.0.4389.90/components/sessions/core/command_storage_backend.cc#341
+k_file_signature = b'SNSS'
+k_file_version_1 = 1
+k_file_version_with_marker = 3
+
+def write_results(
+        f_out: io.BufferedWriter,
+        f_in: io.BufferedReader,
+        instructions: Optional[List[Instruction]]):
+    header_bytes = f_in.read(8)
+    if header_bytes[:4] != k_file_signature:
+        raise ClickException('Input is not an SNSS file')
+
+    format_version, = struct.unpack('<i', header_bytes[4:])
+    if format_version not in (k_file_version_1, k_file_version_with_marker):
+        raise ClickException(f'Input has unexpected version: {format_version}')
+
+    f_out.write(header_bytes)
+
+    i = 0
+    while True:
+        offset = f_in.tell()
+
+        size_bytes = f_in.read(2)
+        if not size_bytes:
+            # EOF
+            if instructions is not None and i < len(instructions):
+                raise ClickException(f'Too many instructions; input consumed before line {i+1}')
+            break
+        size, = struct.unpack('<H', size_bytes)
+
+        command_bytes = f_in.read(size)
+
+        command_type = command_bytes[0]
+
+        if instructions is not None:
+            if i >= len(instructions):
+                raise ClickException(
+                    f'Ran out of instructions; commands continue at offset 0x{offset:08x}')
+            instruction = instructions[i]
+            i += 1
+
+            if offset != instruction.offset:
+                raise ClickException(f'Offset mismatch: next command is at 0x{offset:08x}'
+                                     + f' but instruction is for 0x{instruction.offset:08x}')
+
+            if command_type != instruction.command_type:
+                raise ClickException(
+                    f'Command type mismatch: command at 0x{offset:08x}'
+                    + f' has type {command_type} but expected {instruction.command_type}')
+
+            if instruction.should_omit:
+                continue
+
+        f_out.write(size_bytes + command_bytes)
+
+
 @click.command()
 @click.argument('input_file')
 @click.argument('output_dir')
@@ -119,9 +178,12 @@ def main(input_file, output_dir, *, instructions_file):
         instructions = parse_instructions(instructions_file)
         log(f'{len(instructions)} instructions read.')
 
-    path, f = open_output_file(output_dir)
+    f_in = open(input_file, 'rb')
+
+    path, f_out = open_output_file(output_dir)
     log(f'Writing output to: {path}')
-    f.close()
+    write_results(f_out, f_in, instructions)
+    f_out.close()
 
 
 if __name__ == '__main__':
