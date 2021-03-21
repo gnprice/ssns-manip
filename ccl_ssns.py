@@ -702,7 +702,14 @@ def main():
     
     log("Processing begins...")
     # load infile
-    f = open(sys.argv[1], "rb")
+    with open(sys.argv[1], "rb") as f:
+        commands = load(f, FILE_TYPE_TABS)
+
+    had_marker = kInitialStateMarkerCommandId in (c.command_type_id for c in commands)
+    if had_marker:
+        log("had marker")
+    else:
+        log("NO MARKER")
 
     document_root = etree.Element("html", )
     document_head = etree.SubElement(document_root, "head")
@@ -710,22 +717,12 @@ def main():
     document_style.text = html_style_string
     etree.SubElement(document_head, "meta", {"http-eqiv":"Content-Type", "content":"text/html", "charset":"utf-8"})
 
-
     body = etree.SubElement(document_root, "body")
-
-    commands = load(f, FILE_TYPE_TABS)
-    had_marker = kInitialStateMarkerCommandId in (c.command_type_id for c in commands)
-    if had_marker:
-        log("had marker")
-    else:
-        log("NO MARKER")
 
     for c in sorted(commands, key=lambda rec: (rec.tab_id or -1, rec.index or -1)):
         if c.command_type_id in (1,6):
             build_command_table(c, body)
             etree.SubElement(body, "br")
-            
-    f.close()
 
     # Write output (using minidom for prettification)
     out = open(sys.argv[2], "wt", encoding="utf-8")
