@@ -610,6 +610,8 @@ def load_iter(f, file_type):
         record_start_offset = f.tell()
         try:
             command = read_command(f)
+        except BrokenPipeError:
+            raise
         except (struct.error, IOError, SsnsError) as e:
             log("Error reading record begining at data offset {0}.".format(record_start_offset))
             log("Error caused by: {0}.".format(e))
@@ -800,4 +802,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BrokenPipeError:
+        pass
