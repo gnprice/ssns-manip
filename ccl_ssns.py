@@ -506,16 +506,25 @@ def read_command(f):
 
     # An UpdateTabNavigation command is stored with command type 1
     # in Tabs files, and command type 6 in Session files.
+    # (And Session files have no command type 1.)
     # See kCommandUpdateTabNavigation in tab_restore_service_impl.cc
     # and session_service_commands.cc respectively.
     if command_id in (1,6):
         command = read_navigation_entry(command_buffer, command_id)
-        print(f"{start_offset:08x}: {command.tab_id:04x}:{command.index:x} {command.url}")
+        print_navigation(start_offset, command)
         return command
     else:
-        print(f"{start_offset:08x}: type {command_id:3} {command_bytes[1:].hex(' ', 4)}")
+        print_command(start_offset, command_id, command_bytes)
         return SessionCommand(command_id, None, None, None, None, None, None, None, 
                           None, None, None, None)
+
+
+def print_navigation(start_offset, command):
+    print(f"{start_offset:08x}: {command.tab_id:04x}:{command.index:x} {command.url}")
+
+
+def print_command(start_offset, command_id, command_bytes):
+    print(f"{start_offset:08x}: type {command_id:3} {command_bytes[1:].hex(' ', 4)}")
 
 
 def read_navigation_entry(command_buffer, command_id):
