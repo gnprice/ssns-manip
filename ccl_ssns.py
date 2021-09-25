@@ -536,7 +536,7 @@ def print_command(start_offset, command_id, command_buffer):
 
     if command_id == 0: # kCommandSetTabWindow
         window_id, tab_id = read_words(2)
-        description = f"W{window_id:02x} T{tab_id:04x}"
+        description = f"W{window_id:04x} T{tab_id:04x}"
 
     # obsolete: elif command_id == 1: # kCommandSetWindowBounds
 
@@ -544,7 +544,10 @@ def print_command(start_offset, command_id, command_buffer):
         tab_id, index = read_words(2)
         description = f"T{tab_id:04x} {index}"
 
+    # not mentioned in upstream source: elif command_id == 3:
+    # not mentioned in upstream source: elif command_id == 4:
     # obsolete: elif command_id == 5: # kCommandTabNavigationPathPrunedFromBack
+
     # handled above: elif command_id == 6: # kCommandUpdateTabNavigation
 
     elif command_id == 7: # kCommandSetSelectedNavigationIndex
@@ -553,11 +556,11 @@ def print_command(start_offset, command_id, command_buffer):
 
     elif command_id == 8: # kCommandSetSelectedTabInIndex
         window_id, index = read_words(2)
-        description = f"W{window_id:02x} {index}"
+        description = f"W{window_id:04x} {index}"
 
     elif command_id == 9: # kCommandSetWindowType
         window_id, index = read_words(2)
-        description = f"W{window_id:02x} {index}"
+        description = f"W{window_id:04x} {index}"
 
     # obsolete: elif command_id == 10: # kCommandSetWindowBounds2
     # obsolete: elif command_id == 11: # kCommandTabNavigationPathPrunedFromFront
@@ -570,10 +573,13 @@ def print_command(start_offset, command_id, command_buffer):
 
     elif command_id == 14: # kCommandSetWindowBounds3
         window_id, x, y, w, h, is_maximized = read_words(6)
-        description = (f"W{window_id:02x} {x},{y} {w}x{h}"
+        description = (f"W{window_id:04x} {x},{y} {w}x{h}"
                        + (' maximized' if is_maximized else ''))
 
-    # elif command_id == 15: # kCommandSetWindowAppName
+    elif command_id == 15: # kCommandSetWindowAppName
+        # Haven't pinned this one down in source, but looks like this.
+        _, window_id = read_words(2)
+        description = f"W{window_id:04x} {hex_rest()}"
 
     elif command_id == 16: # kCommandTabClosed
         tab_id, time = read_words(2)
@@ -581,7 +587,7 @@ def print_command(start_offset, command_id, command_buffer):
 
     elif command_id == 17: # kCommandWindowClosed
         window_id, time = read_words(2)
-        description = f"T{window_id:02x} {time}"
+        description = f"T{window_id:04x} {time}"
 
     # obsolete: elif command_id == 18: # kCommandSetTabUserAgentOverride
 
@@ -591,7 +597,7 @@ def print_command(start_offset, command_id, command_buffer):
 
     elif command_id == 20: # kCommandSetActiveWindow
         window_id, = read_words(1)
-        description = f"W{window_id:02x}"
+        description = f"W{window_id:04x}"
 
     elif command_id == 21: # kCommandLastActiveTime
         tab_id, time = read_words(2)
@@ -601,7 +607,7 @@ def print_command(start_offset, command_id, command_buffer):
 
     elif command_id == 23: # kCommandSetWindowWorkspace2
         _, window_id = read_words(2)
-        description = f"W{window_id:02x} {hex_rest()}"
+        description = f"W{window_id:04x} {hex_rest()}"
 
 
     elif command_id == 24: # kCommandTabNavigationPathPruned
@@ -631,10 +637,13 @@ def print_command(start_offset, command_id, command_buffer):
 
     elif command_id == 32: # kCommandSetWindowVisibleOnAllWorkspaces
         window_id, visible = read_words(2)
-        description = f"W{window_id:02x} {'' if visible else 'not-'}visible-on-all-workspaces"
+        description = f"W{window_id:04x} {'' if visible else 'not-'}visible-on-all-workspaces"
+
+    elif command_id == kInitialStateMarkerCommandId:
+        description = "initial-state-marker"
 
     else:
-        description = hex_rest()
+        description = f"?? {hex_rest()}"
 
     print(f"{start_offset:08x}: C{command_id:<3} {description}")
 
