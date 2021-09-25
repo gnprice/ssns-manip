@@ -37,18 +37,14 @@ def parse_instructions(filename):
     instructions = []
     with open(filename, 'r') as f:
         for line in f:
-            m = re.search('^(x )?([0-9a-f]{8}): (?:([0-9a-f]{4,}:[0-9a-f]+ )|type +(\d+))',
+            m = re.search('^(x )?([0-9a-f]{8}): C(\d+)',
                           line)
             if not m:
                 raise click.ClickException(f"Can't parse instruction: {line}")
 
             should_omit = (m[1] is not None)
             offset = int(m[2], 16)
-            if m[3] is not None:
-                # aka kCommandUpdateTabNavigation, in session_service_commands.cc
-                command_type = 6
-            else:
-                command_type = int(m[4])
+            command_type = int(m[3])
 
             instructions.append(Instruction(
                 offset=offset, command_type=command_type, should_omit=should_omit))

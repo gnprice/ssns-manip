@@ -514,17 +514,27 @@ def read_command(f):
         print_navigation(start_offset, command)
         return command
     else:
-        print_command(start_offset, command_id, command_bytes)
+        print_command(start_offset, command_id, command_buffer)
         return SessionCommand(command_id, None, None, None, None, None, None, None, 
                           None, None, None, None)
 
 
 def print_navigation(start_offset, command):
-    print(f"{start_offset:08x}: {command.tab_id:04x}:{command.index:x} {command.url}")
+    print(f"{start_offset:08x}: C{6:<3} T{command.tab_id:04x} navindex{command.index:x} {command.url}")
 
 
-def print_command(start_offset, command_id, command_bytes):
-    print(f"{start_offset:08x}: type {command_id:3} {command_bytes[1:].hex(' ', 4)}")
+def print_command(start_offset, command_id, command_buffer):
+    # For command types, see:
+    #   https://chromium.googlesource.com/chromium/src.git/+/refs/tags/90.0.4430.85/components/sessions/core/session_service_commands.cc
+    # For the format for each type, see CreateTabsAndWindows there.
+    if command_id == 0: # kCommandSetTabWindow
+        window_id, = struct.unpack("<i", command_buffer.read(4))
+        tab_id, = struct.unpack("<i", command_buffer.read(4))
+        description = f"W{window_id:02x} T{tab_id:04x}"
+    # TODO nice formatting for more command types
+    else:
+        description = command_buffer.read().hex(' ', 4)
+    print(f"{start_offset:08x}: C{command_id:<3} {description}")
 
 
 def read_navigation_entry(command_buffer, command_id):
