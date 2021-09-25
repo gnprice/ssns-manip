@@ -527,29 +527,29 @@ def print_command(start_offset, command_id, command_buffer):
     # For command types, see:
     #   https://chromium.googlesource.com/chromium/src.git/+/refs/tags/94.0.4606.61/components/sessions/core/session_service_commands.cc
     # For the format for each type, see CreateTabsAndWindows there.
+
+    def read_words(n):
+        return struct.unpack(f'<{n}i', command_buffer.read(n * 4))
+
     if command_id == 0: # kCommandSetTabWindow
-        window_id, = struct.unpack("<i", command_buffer.read(4))
-        tab_id, = struct.unpack("<i", command_buffer.read(4))
+        window_id, tab_id = read_words(2)
         description = f"W{window_id:02x} T{tab_id:04x}"
 
     # obsolete: elif command_id == 1: # kCommandSetWindowBounds
 
     elif command_id == 2: # kCommandSetTabIndexInWindow
-        tab_id, = struct.unpack("<i", command_buffer.read(4))
-        index, = struct.unpack("<i", command_buffer.read(4))
+        tab_id, index = read_words(2)
         description = f"T{tab_id:04x} {index}"
 
     # obsolete: elif command_id == 5: # kCommandTabNavigationPathPrunedFromBack
     # handled above: elif command_id == 6: # kCommandUpdateTabNavigation
 
     elif command_id == 7: # kCommandSetSelectedNavigationIndex
-        tab_id, = struct.unpack("<i", command_buffer.read(4))
-        index, = struct.unpack("<i", command_buffer.read(4))
+        tab_id, index = read_words(2)
         description = f"T{tab_id:04x} {index}"
 
     elif command_id == 8: # kCommandSetSelectedTabInIndex
-        window_id, = struct.unpack("<i", command_buffer.read(4))
-        index, = struct.unpack("<i", command_buffer.read(4))
+        window_id, index = read_words(2)
         description = f"W{window_id:02x} {index}"
 
     # elif command_id == 9: # kCommandSetWindowType
