@@ -525,15 +525,62 @@ def print_navigation(start_offset, command):
 
 def print_command(start_offset, command_id, command_buffer):
     # For command types, see:
-    #   https://chromium.googlesource.com/chromium/src.git/+/refs/tags/90.0.4430.85/components/sessions/core/session_service_commands.cc
+    #   https://chromium.googlesource.com/chromium/src.git/+/refs/tags/94.0.4606.61/components/sessions/core/session_service_commands.cc
     # For the format for each type, see CreateTabsAndWindows there.
     if command_id == 0: # kCommandSetTabWindow
         window_id, = struct.unpack("<i", command_buffer.read(4))
         tab_id, = struct.unpack("<i", command_buffer.read(4))
         description = f"W{window_id:02x} T{tab_id:04x}"
-    # TODO nice formatting for more command types
+
+    # obsolete: elif command_id == 1: # kCommandSetWindowBounds
+
+    elif command_id == 2: # kCommandSetTabIndexInWindow
+        tab_id, = struct.unpack("<i", command_buffer.read(4))
+        index, = struct.unpack("<i", command_buffer.read(4))
+        description = f"T{tab_id:04x} {index}"
+
+    # obsolete: elif command_id == 5: # kCommandTabNavigationPathPrunedFromBack
+    # handled above: elif command_id == 6: # kCommandUpdateTabNavigation
+
+    elif command_id == 7: # kCommandSetSelectedNavigationIndex
+        tab_id, = struct.unpack("<i", command_buffer.read(4))
+        index, = struct.unpack("<i", command_buffer.read(4))
+        description = f"T{tab_id:04x} {index}"
+
+    elif command_id == 8: # kCommandSetSelectedTabInIndex
+        window_id, = struct.unpack("<i", command_buffer.read(4))
+        index, = struct.unpack("<i", command_buffer.read(4))
+        description = f"W{window_id:02x} {index}"
+
+    # elif command_id == 9: # kCommandSetWindowType
+    # # obsolete: elif command_id == 10: # kCommandSetWindowBounds2
+    # # obsolete: elif command_id == 11: # kCommandTabNavigationPathPrunedFromFront
+    # elif command_id == 12: # kCommandSetPinnedState
+    # elif command_id == 13: # kCommandSetExtensionAppID
+    # elif command_id == 14: # kCommandSetWindowBounds3
+    # elif command_id == 15: # kCommandSetWindowAppName
+    # elif command_id == 16: # kCommandTabClosed
+    # elif command_id == 17: # kCommandWindowClosed
+    # # obsolete: elif command_id == 18: # kCommandSetTabUserAgentOverride
+    # elif command_id == 19: # kCommandSessionStorageAssociated
+    # elif command_id == 20: # kCommandSetActiveWindow
+    # elif command_id == 21: # kCommandLastActiveTime
+    # # obsolete: elif command_id == 22: # kCommandSetWindowWorkspace
+    # elif command_id == 23: # kCommandSetWindowWorkspace2
+    # elif command_id == 24: # kCommandTabNavigationPathPruned
+    # elif command_id == 25: # kCommandSetTabGroup
+    # # obsolete: elif command_id == 26: # kCommandSetTabGroupMetadata
+    # elif command_id == 27: # kCommandSetTabGroupMetadata2
+    # elif command_id == 28: # kCommandSetTabGuid
+    # elif command_id == 29: # kCommandSetTabUserAgentOverride2
+    # elif command_id == 30: # kCommandSetTabData
+    # elif command_id == 31: # kCommandSetWindowUserTitle
+    # elif command_id == 32: # kCommandSetWindowVisibleOnAllWorkspaces
+
+    # TODO nice formatting for more command types, above
     else:
         description = command_buffer.read().hex(' ', 4)
+
     print(f"{start_offset:08x}: C{command_id:<3} {description}")
 
 
