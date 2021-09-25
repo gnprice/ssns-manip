@@ -520,7 +520,7 @@ def read_command(f):
 
 
 def print_navigation(start_offset, command):
-    print(f"{start_offset:08x}: C{6:<3} T{command.tab_id:04x} navindex{command.index:x} {command.url}")
+    print(f"{start_offset:08x}: C{6:<3} T{command.tab_id:04x} {command.index} {command.url}")
 
 
 def print_command(start_offset, command_id, command_buffer):
@@ -530,6 +530,9 @@ def print_command(start_offset, command_id, command_buffer):
 
     def read_words(n):
         return struct.unpack(f'<{n}i', command_buffer.read(n * 4))
+
+    def hex_rest():
+        return command_buffer.read().hex(' ', 4)
 
     if command_id == 0: # kCommandSetTabWindow
         window_id, tab_id = read_words(2)
@@ -552,34 +555,86 @@ def print_command(start_offset, command_id, command_buffer):
         window_id, index = read_words(2)
         description = f"W{window_id:02x} {index}"
 
-    # elif command_id == 9: # kCommandSetWindowType
-    # # obsolete: elif command_id == 10: # kCommandSetWindowBounds2
-    # # obsolete: elif command_id == 11: # kCommandTabNavigationPathPrunedFromFront
-    # elif command_id == 12: # kCommandSetPinnedState
-    # elif command_id == 13: # kCommandSetExtensionAppID
-    # elif command_id == 14: # kCommandSetWindowBounds3
-    # elif command_id == 15: # kCommandSetWindowAppName
-    # elif command_id == 16: # kCommandTabClosed
-    # elif command_id == 17: # kCommandWindowClosed
-    # # obsolete: elif command_id == 18: # kCommandSetTabUserAgentOverride
-    # elif command_id == 19: # kCommandSessionStorageAssociated
-    # elif command_id == 20: # kCommandSetActiveWindow
-    # elif command_id == 21: # kCommandLastActiveTime
-    # # obsolete: elif command_id == 22: # kCommandSetWindowWorkspace
-    # elif command_id == 23: # kCommandSetWindowWorkspace2
-    # elif command_id == 24: # kCommandTabNavigationPathPruned
-    # elif command_id == 25: # kCommandSetTabGroup
-    # # obsolete: elif command_id == 26: # kCommandSetTabGroupMetadata
-    # elif command_id == 27: # kCommandSetTabGroupMetadata2
-    # elif command_id == 28: # kCommandSetTabGuid
-    # elif command_id == 29: # kCommandSetTabUserAgentOverride2
-    # elif command_id == 30: # kCommandSetTabData
-    # elif command_id == 31: # kCommandSetWindowUserTitle
-    # elif command_id == 32: # kCommandSetWindowVisibleOnAllWorkspaces
+    elif command_id == 9: # kCommandSetWindowType
+        window_id, index = read_words(2)
+        description = f"W{window_id:02x} {index}"
 
-    # TODO nice formatting for more command types, above
+    # obsolete: elif command_id == 10: # kCommandSetWindowBounds2
+    # obsolete: elif command_id == 11: # kCommandTabNavigationPathPrunedFromFront
+
+    elif command_id == 12: # kCommandSetPinnedState
+        tab_id, state = read_words(2)
+        description = f"T{tab_id:04x} {'pinned' if state else 'unpinned'}"
+
+    # elif command_id == 13: # kCommandSetExtensionAppID
+
+    elif command_id == 14: # kCommandSetWindowBounds3
+        window_id, x, y, w, h, is_maximized = read_words(6)
+        description = (f"W{window_id:02x} {x},{y} {w}x{h}"
+                       + (' maximized' if is_maximized else ''))
+
+    # elif command_id == 15: # kCommandSetWindowAppName
+
+    elif command_id == 16: # kCommandTabClosed
+        tab_id, time = read_words(2)
+        description = f"T{tab_id:04x} {time}"
+
+    elif command_id == 17: # kCommandWindowClosed
+        window_id, time = read_words(2)
+        description = f"T{window_id:02x} {time}"
+
+    # obsolete: elif command_id == 18: # kCommandSetTabUserAgentOverride
+
+    elif command_id == 19: # kCommandSessionStorageAssociated
+        _, tab_id = read_words(2)
+        description = f"T{tab_id:04x} {hex_rest()}"
+
+    elif command_id == 20: # kCommandSetActiveWindow
+        window_id, = read_words(1)
+        description = f"W{window_id:02x}"
+
+    elif command_id == 21: # kCommandLastActiveTime
+        tab_id, time = read_words(2)
+        description = f"T{tab_id:04x} {time}"
+
+    # obsolete: elif command_id == 22: # kCommandSetWindowWorkspace
+
+    elif command_id == 23: # kCommandSetWindowWorkspace2
+        _, window_id = read_words(2)
+        description = f"W{window_id:02x} {hex_rest()}"
+
+
+    elif command_id == 24: # kCommandTabNavigationPathPruned
+        tab_id, index = read_words(2)
+        description = f"T{tab_id:04x} {index}"
+
+    elif command_id == 25: # kCommandSetTabGroup
+        tab_id, = read_words(1)
+        description = f"T{tab_id:04x} {hex_rest()}"
+
+    # obsolete: elif command_id == 26: # kCommandSetTabGroupMetadata
+
+    # elif command_id == 27: # kCommandSetTabGroupMetadata2
+
+    elif command_id == 28: # kCommandSetTabGuid
+        _, tab_id = read_words(2)
+        description = f"T{tab_id:04x} {hex_rest()}"
+
+
+    # elif command_id == 29: # kCommandSetTabUserAgentOverride2
+
+    elif command_id == 30: # kCommandSetTabData
+        _, tab_id = read_words(2)
+        description = f"T{tab_id:04x} {hex_rest()}"
+
+    # elif command_id == 31: # kCommandSetWindowUserTitle
+
+    elif command_id == 32: # kCommandSetWindowVisibleOnAllWorkspaces
+        window_id, visible = read_words(2)
+        description = f"W{window_id:02x} {'' if visible else 'not-'}visible-on-all-workspaces"
+
     else:
-        description = command_buffer.read().hex(' ', 4)
+        description = hex_rest()
 
     print(f"{start_offset:08x}: C{command_id:<3} {description}")
 
