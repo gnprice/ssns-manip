@@ -37,6 +37,9 @@ def parse_instructions(filename):
     instructions = []
     with open(filename, 'r') as f:
         for line in f:
+            if re.search('^\s*$', line):
+                continue
+
             m = re.search('^(x )?([0-9a-f]{8}): C(\d+)',
                           line)
             if not m:
@@ -167,6 +170,8 @@ def main(input_file, output_dir, *, instructions_file):
      * unmodified, to copy the command unmodified to the output; or
 
      * have "x " inserted at the beginning, to skip the command.
+
+    Whitespace lines are also permitted, and ignored.
     '''
 
     instructions = None
